@@ -57,7 +57,7 @@
                             draggable: true,
                         });
 
-                        /*
+                        
                         node.on('dragmove', () => {
                             const circle = node.getClientRect();
                             const absPos = node.getAbsolutePosition();
@@ -79,7 +79,7 @@
                             }
                             node.setAbsolutePosition(newAbsPos)
                         });
-                        */
+                        
 
                         layer.add(node);
                     });
@@ -119,8 +119,8 @@
                         // show menu
                         menuNode.style.display = 'initial';
                         var containerRect = stage.container().getBoundingClientRect();
-                        menuNode.style.top = stage.getPointerPosition().y + 50 + 'px';
-                        menuNode.style.left = stage.getPointerPosition().x + 50 + 'px';
+                        menuNode.style.top = stage.getPointerPosition().y + 60 + 'px';
+                        menuNode.style.left = stage.getPointerPosition().x + 40 + 'px';
                     });
 
 
