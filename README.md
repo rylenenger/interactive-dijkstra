@@ -2,7 +2,7 @@
 
 > Try finger
 
-> Live demo [_here_](google.ca)
+> Live demo [_here_](rylenenger.github.io/interactive-dijkstra)
 
 
 ## Project Status
@@ -47,4 +47,3 @@ To be updated during the project.
 
 
 ## Contact
-Created by 
