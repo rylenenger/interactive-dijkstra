@@ -40,6 +40,8 @@ This project is being built with the following tools:
   * Export button for .csv, or printable notes
 * **STUDY TOOL**
   * Randomize within specific limitations
+* **PLATFORM COMPATIBILITY**
+  * Get a working version for mobile devices
 
 
 ## Sources
