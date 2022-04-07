@@ -1,25 +1,33 @@
 //  ================
 // ||  VARIABLES   ||
 //  ================
+
 var count = 0;
-var nodeCreated = false;
-var nodes;
+var vertexCreated = false;
+var tool = document.getElementById('tool').value;
+
 
 
 //  ================
 // ||  CONSTANTS   ||
 //  ================
+
 const sceneWidth = 1140;
 const sceneHeight = sceneWidth / 2;
 const DEFAULT_STROKE_WIDTH = 2;
+const DEFAULT_VERTEX_FONT_SIZE = 40;
 const MOUSEOVER_STROKE_WIDTH = 6;
 // create array to hold the alphabet
 const alpha = Array.from(Array(26)).map((e, i) => i + 65);
 const alphabet = alpha.map((x) => String.fromCharCode(x));
 
+
+
 //  ================
 // || APPLICATION  ||
 //  ================
+
+
 
 var stage = new Konva.Stage({
     container: 'container',
@@ -27,24 +35,44 @@ var stage = new Konva.Stage({
     height: sceneHeight,
 });
 
+stage.on('contextmenu', function (e) {
+    // prevent default behavior
+    e.evt.preventDefault();
+});
+
 var layer = new Konva.Layer();
 stage.add(layer);
 
+stage.on('click', function (e) {
+    if (e.evt.button === 0) {
+        console.log('stage left click registered');
 
-stage.on('dblclick dbltap', function () {
+        tool = document.getElementById('tool').value;
+        console.log('tool:' + tool);
 
-    if (count < 26) {
+        switch (tool) {
+            case "vertex":
+                addVertex(e);
+                break;
+            case "edge":
+                addEdge(e);
+                break;
+        }
+    }
 
-        // create a node group (circle with text)
-        
-        var node = new Konva.Group({
+});
+
+function addVertex(e) {
+
+    if (e.target === stage) {
+        var vertex = new Konva.Group({
             x: stage.getRelativePointerPosition().x,
             y: stage.getRelativePointerPosition().y,
             draggable: true,
             name: nextLetter(),
         });
 
-        node.add(new Konva.Circle({
+        vertex.add(new Konva.Circle({
             radius: 40,
             fill: Konva.Util.getRandomColor(),
             stroke: 'black',
@@ -52,9 +80,9 @@ stage.on('dblclick dbltap', function () {
 
         }));
 
-        node.add(new Konva.Text({
-            text: node.name(),
-            fontSize: 40,
+        vertex.add(new Konva.Text({
+            text: vertex.name(),
+            fontSize: DEFAULT_VERTEX_FONT_SIZE,
             fontFamily: 'Consolas',
             fill: 'white',
             offsetX: 11,
@@ -62,12 +90,16 @@ stage.on('dblclick dbltap', function () {
             listening: false, // need this to be false for mouseover GFX
         }));
 
-        nodeCreated = true;
-        console.log("node created");
+        layer.add(vertex);
 
-        node.on('dragmove', () => {
-            const circle = node.getClientRect();
-            const absPos = node.getAbsolutePosition();
+        vertexCreated = true;
+        console.log("vertex created");
+
+
+        // limit the vertex boundaries to the edge of the stage
+        vertex.on('dragmove', () => {
+            const circle = vertex.getClientRect();
+            const absPos = vertex.getAbsolutePosition();
             const offsetX = circle.x - absPos.x;
             const offsetY = circle.y - absPos.y;
 
@@ -84,24 +116,21 @@ stage.on('dblclick dbltap', function () {
             if (circle.y + circle.height > stage.height()) {
                 newAbsPos.y = stage.height() - circle.height - offsetY;
             }
-            node.setAbsolutePosition(newAbsPos)
+            vertex.setAbsolutePosition(newAbsPos)
         });
 
-        // do something else on right click
-        node.on('click', (e) => {
+        // attach a right click listener for the vertex
+        vertex.on('click', (e) => {
             if (e.evt.button === 2) {
                 currentGroup = e.target.getParent();
-                // show menu
-                menuNode.style.display = 'initial';
+                menuVertex.style.display = 'initial';
                 var containerRect = stage.container().getBoundingClientRect();
-                menuNode.style.top = stage.getPointerPosition().y + 60 + 'px';
-                menuNode.style.left = stage.getPointerPosition().x + 40 + 'px';
+                menuVertex.style.top = stage.getPointerPosition().y + 60 + 'px';
+                menuVertex.style.left = stage.getPointerPosition().x + 40 + 'px';
             }
         });
-
-        // setup menu
         let currentGroup;
-        var menuNode = document.getElementById('menu');
+        var menuVertex = document.getElementById('menu');
         document.getElementById('setStart-button').addEventListener('click', () => {
             currentGroup.to({
                 scaleX: 2,
@@ -111,106 +140,126 @@ stage.on('dblclick dbltap', function () {
                 },
             });
         });
-
         document.getElementById('delete-button').addEventListener('click', () => {
             currentGroup.destroy();
         });
-
         window.addEventListener('click', () => {
-            // hide menu
-            menuNode.style.display = 'none';
+            menuVertex.style.display = 'none';
         });
-
-        layer.add(node);
     }
+    else {
+        console.log("target is not stage");
+    }
+}
 
-});
 
-
-let drawingLine = false;
-let line;
-node.on('mousedown', (e) => {
-    console.log("mousedown on node");
-    drawingLine = true;
-    const pos = stage.getPointerPosition();
-    line = new Konva.Line({
-        stroke: 'black',
-        // remove line from hit graph, so we can check intersections
-        listening: false,
-        points: [node.x(), node.y(), pos.x, pos.y]
+function addEdge(e) {
+    
+    if(e.target != stage){
+        console.log(e.target.getParent().attrs.name);
+    }
+    
+    
+    /*
+    
+    let drawingLine = false;
+    let line;
+    vertex.on('mousedown', (e) => {
+        console.log("mousedown on vertex");
+        drawingLine = true;
+        const pos = stage.getPointerPosition();
+        line = new Konva.Line({
+            stroke: 'black',
+            // remove line from hit graph, so we can check intersections
+            listening: false,
+            points: [vertex.x(), vertex.y(), pos.x, pos.y]
+        });
+        layer.add(line);
     });
-    layer.add(line);
-});
 
-stage.on('mouseover', (e) => {
-    if (e.target != stage) {
-        if (e.target.getParent()) {
-            e.target.strokeWidth(MOUSEOVER_STROKE_WIDTH);
-            layer.draw();
+    stage.on('mouseover', (e) => {
+        if (e.target != stage) {
+            if (e.target.getParent()) {
+                e.target.strokeWidth(MOUSEOVER_STROKE_WIDTH);
+                layer.draw();
+            }
         }
-    }
-});
+    });
 
-stage.on('mouseout', (e) => {
-    if (e.target != stage) {
-        if (e.target.getParent()) {
-            e.target.strokeWidth(DEFAULT_STROKE_WIDTH);
-            layer.draw();
+    stage.on('mouseout', (e) => {
+        if (e.target != stage) {
+            if (e.target.getParent()) {
+                e.target.strokeWidth(DEFAULT_STROKE_WIDTH);
+                layer.draw();
+            }
         }
-    }
-});
+    });
 
-stage.on('mousemove', (e) => {
-    if (!line) {
-        return;
-    }
-    const pos = stage.getRelativePointerPosition();
-    const points = line.points().slice();
-    points[2] = pos.x;
-    points[3] = pos.y;
-    line.points(points);
-    layer.batchDraw();
-});
-
-stage.on('mouseup', (e) => {
-    if (!line) {
-        return;
-    }
-    if (!e.target.getParent().hasName('B')) {
-        line.destroy();
-        layer.draw();
-        line = null;
-    } else {
-        let pos = e.target.getClientRect();
+    stage.on('mousemove', (e) => {
+        if (!line) {
+            return;
+        }
+        const pos = stage.getRelativePointerPosition();
         const points = line.points().slice();
-        points[2] = pos.x + (e.target.width() / 2);
-        points[3] = pos.y + (e.target.height() / 2);;
+        points[2] = pos.x;
+        points[3] = pos.y;
         line.points(points);
         layer.batchDraw();
+    });
 
-        line = null;
-    }
+    stage.on('mouseup', (e) => {
+        if (!line) {
+            return;
+        }
+        if (!e.target.getParent().hasName('B')) {
+            line.destroy();
+            layer.draw();
+            line = null;
+        } else {
+            let pos = e.target.getClientRect();
+            const points = line.points().slice();
+            points[2] = pos.x + (e.target.width() / 2);
+            points[3] = pos.y + (e.target.height() / 2);;
+            line.points(points);
+            layer.batchDraw();
 
-});
+            line = null;
+        }
+
+    });
+
+    */
+}
+
 
 
 function nextLetter() {
     return alphabet[count++];
 }
 
-
-stage.on('contextmenu', function (e) {
-    // prevent default behavior
-    e.evt.preventDefault();
+document.getElementById('tool').addEventListener('change', function () {
+    console.log('You selected: ', this.value);
+    switch (this.value) {
+        case "vertex":
+            for (const letter of alphabet) {
+                if (stage.find('.' + letter)[0]) {
+                    console.log("letter: " + letter.toString());
+                    var group = stage.find('.' + letter)[0];
+                    group.setDraggable(true);
+                }
+            }
+            break;
+        case "edge":
+            for (const letter of alphabet) {
+                if (stage.find('.' + letter)[0]) {
+                    console.log("letter: " + letter.toString());
+                    var group = stage.find('.' + letter)[0];
+                    group.setDraggable(false);
+                }
+            }
+            break;
+    }
 });
-
-var select = document.getElementById('tool');
-select.addEventListener('change', function () {
-    mode = select.value;
-    console.log("mode: " + mode);
-});
-
-
 
 function fitStageIntoParentContainer() {
     var container = document.querySelector('#stage-parent');
