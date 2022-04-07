@@ -10,6 +10,7 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
     <script src="https://unpkg.com/konva@8.3.5/konva.min.js"></script>
+    
 </head>
 
 <body>
@@ -31,120 +32,6 @@
                         </div>
                     </div>
                 </div>
-
-                <script>
-                    var sceneWidth = 1200;
-                    var sceneHeight = sceneWidth / 2;
-
-                    var stage = new Konva.Stage({
-                        container: 'container',
-                        width: sceneWidth,
-                        height: sceneHeight,
-                    });
-
-                    var layer = new Konva.Layer();
-                    stage.add(layer);
-
-                    stage.on('dblclick dbltap', function () {
-                        // add a new shape
-                        var node = new Konva.Circle({
-                            x: stage.getRelativePointerPosition().x,
-                            y: stage.getRelativePointerPosition().y,
-                            radius: 30,
-                            fill: Konva.Util.getRandomColor(),
-                            stroke: 'black',
-                            strokeWidth: 2,
-                            draggable: true,
-                        });
-
-                        
-                        node.on('dragmove', () => {
-                            const circle = node.getClientRect();
-                            const absPos = node.getAbsolutePosition();
-                            const offsetX = circle.x - absPos.x;
-                            const offsetY = circle.y - absPos.y;
-
-                            const newAbsPos = { ...absPos }
-                            if (circle.x < 0) {
-                                newAbsPos.x = -offsetX;
-                            }
-                            if (circle.y < 0) {
-                                newAbsPos.y = -offsetY;
-                            }
-                            if (circle.x + circle.width > stage.width()) {
-                                newAbsPos.x = stage.width() - circle.width - offsetX;
-                            }
-                            if (circle.y + circle.height > stage.height()) {
-                                newAbsPos.y = stage.height() - circle.height - offsetY;
-                            }
-                            node.setAbsolutePosition(newAbsPos)
-                        });
-                        
-
-                        layer.add(node);
-                    });
-
-                    // setup menu
-                    let currentShape;
-                    var menuNode = document.getElementById('menu');
-                    document.getElementById('setStart-button').addEventListener('click', () => {
-                        currentShape.to({
-                            scaleX: 2,
-                            scaleY: 2,
-                            onFinish: () => {
-                                currentShape.to({ scaleX: 1, scaleY: 1 });
-                            },
-                        });
-                    });
-
-                    document.getElementById('delete-button').addEventListener('click', () => {
-                        currentShape.destroy();
-                    });
-
-                    window.addEventListener('click', () => {
-                        // hide menu
-                        menuNode.style.display = 'none';
-                    });
-
-
-
-                    stage.on('contextmenu', function (e) {
-                        // prevent default behavior
-                        e.evt.preventDefault();
-                        if (e.target === stage) {
-                            // if we are on empty place of the stage we will do nothing
-                            return;
-                        }
-                        currentShape = e.target;
-                        // show menu
-                        menuNode.style.display = 'initial';
-                        var containerRect = stage.container().getBoundingClientRect();
-                        menuNode.style.top = stage.getPointerPosition().y + 60 + 'px';
-                        menuNode.style.left = stage.getPointerPosition().x + 40 + 'px';
-                    });
-
-
-
-                    function fitStageIntoParentContainer() {
-                        var container = document.querySelector('#stage-parent');
-
-                        // now we need to fit stage into parent container
-                        var containerWidth = container.offsetWidth;
-
-                        // but we also make the full scene visible
-                        // so we need to scale all objects on canvas
-                        var scale = containerWidth / sceneWidth;
-
-                        stage.width(sceneWidth * scale);
-                        stage.height(sceneHeight * scale);
-                        stage.scale({ x: scale, y: scale });
-                    }
-
-                    fitStageIntoParentContainer();
-                    // adapt the stage on any window resize
-                    window.addEventListener('resize', fitStageIntoParentContainer);
-                </script>
-
             </div>
         </div>
         <div class="row">
@@ -165,6 +52,8 @@
             </div>
         </div>
     </div>
+
+    <script src="stuff.js"></script>
 
 </body>
 
