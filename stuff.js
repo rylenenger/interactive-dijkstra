@@ -17,6 +17,7 @@ const sceneHeight = sceneWidth / 2;
 const DEFAULT_STROKE_WIDTH = 2;
 const DEFAULT_VERTEX_FONT_SIZE = 40;
 const MOUSEOVER_STROKE_WIDTH = 6;
+const DEFAULT_RADIUS = 40;
 // create array to hold the alphabet
 const alpha = Array.from(Array(26)).map((e, i) => i + 65);
 const alphabet = alpha.map((x) => String.fromCharCode(x));
@@ -70,10 +71,11 @@ function addVertex(e) {
             y: stage.getRelativePointerPosition().y,
             draggable: true,
             name: nextLetter(),
+            connectedTo: "1",
         });
 
         vertex.add(new Konva.Circle({
-            radius: 40,
+            radius: DEFAULT_RADIUS,
             fill: Konva.Util.getRandomColor(),
             stroke: 'black',
             strokeWidth: 2,
@@ -117,6 +119,8 @@ function addVertex(e) {
                 newAbsPos.y = stage.height() - circle.height - offsetY;
             }
             vertex.setAbsolutePosition(newAbsPos)
+
+            updateObjects(vertex);
         });
 
         // attach a right click listener for the vertex
@@ -154,28 +158,10 @@ function addVertex(e) {
 
 
 function addEdge(e) {
-    
-    if(e.target != stage){
+
+    if (e.target != stage) {
         console.log(e.target.getParent().attrs.name);
     }
-    
-    
-    /*
-    
-    let drawingLine = false;
-    let line;
-    vertex.on('mousedown', (e) => {
-        console.log("mousedown on vertex");
-        drawingLine = true;
-        const pos = stage.getPointerPosition();
-        line = new Konva.Line({
-            stroke: 'black',
-            // remove line from hit graph, so we can check intersections
-            listening: false,
-            points: [vertex.x(), vertex.y(), pos.x, pos.y]
-        });
-        layer.add(line);
-    });
 
     stage.on('mouseover', (e) => {
         if (e.target != stage) {
@@ -195,8 +181,38 @@ function addEdge(e) {
         }
     });
 
+    let drawingLine = false;
+    let line;
+    var lineTo = null;
+    var lineFrom = null;
+    e.target.on('mousedown', (e) => {
+
+
+        tool = document.getElementById('tool').value;
+
+        if (tool == "edge" && e.target != stage) {
+            console.log("mousedown on vertex");
+            drawingLine = true;
+            const pos = stage.getRelativePointerPosition();
+
+            lineFrom = e.target.getParent().attrs.name;
+
+            line = new Konva.Line({
+                stroke: 'black',
+                // remove line from hit graph, so we can check intersections
+                listening: false,
+                points: [e.target.getParent().x(), e.target.getParent().y(), pos.x, pos.y],
+                start: lineFrom,
+                end: null,
+            });
+
+            layer.add(line);
+        }
+
+    });
+
     stage.on('mousemove', (e) => {
-        if (!line) {
+        if (!line || tool != "edge") {
             return;
         }
         const pos = stage.getRelativePointerPosition();
@@ -211,7 +227,15 @@ function addEdge(e) {
         if (!line) {
             return;
         }
-        if (!e.target.getParent().hasName('B')) {
+        // if target is stage, line, source, or connected with node already, destroy the line
+        if (
+            e.target == stage                           // can't be stage
+            || e.target.getParent().hasName(lineFrom)   // can't be vertex where line started
+            || e.target.getParent().attrs.connectedTo.includes(lineFrom)   // destination can't already be connected to source
+            || e.target.getParent().attrs.connectedTo.includes(lineTo)   // destination can't already be connected to source
+        ) {
+
+            console.log("can't create line!");
             line.destroy();
             layer.draw();
             line = null;
@@ -222,15 +246,81 @@ function addEdge(e) {
             points[3] = pos.y + (e.target.height() / 2);;
             line.points(points);
             layer.batchDraw();
-
+            lineTo = e.target.getParent().attrs.name;
+            line.setAttr("end", lineTo);
+            //line.setAttr("name", lineFrom + '-' + lineTo);
+            line.setAttr("name", "connection");
+            console.log(line);
             line = null;
+
+            updateObjects(e.target.getParent());
+
+            // add source to the connectedTo attribute of the destination vertex
+            e.target.getParent().setAttr("connectedTo", e.target.getParent().attrs.connectedTo += lineFrom);
+
+            // need to do source vertex as well
+            stage.find('.' + lineFrom)[0].setAttr("connectedTo", stage.find('.' + lineFrom)[0].attrs.connectedTo += lineTo);
+
+
         }
 
     });
 
-    */
 }
 
+
+function updateObjects(vertex) {
+
+    // vertex is the current selected vertex that *has* been moved
+    // need to find all connected lines and move whichever end is connected to this vertex with the vertex
+
+    var connectedVertexes = vertex.attrs.connectedTo;
+    console.log(connectedVertexes);
+
+    let oldVertex;
+
+    // find all the lines that are connected to the vertex
+
+    var lines = stage.find('.connection');
+    console.log(lines);
+
+    for (const line of lines){
+        if(line.attrs.start.includes(vertex.attrs.name) || line.attrs.end.includes(vertex.attrs.name)){
+
+            // find the name of the oldVertex
+            if(line.attrs.start == vertex.attrs.name){
+                // if start of the line matches current vertex, oldVertex must be end of the line
+                oldVertex = stage.findOne('.' + line.attrs.end);
+            } else {
+                oldVertex = stage.findOne('.' + line.attrs.start);
+            }
+
+            const points = getConnectorPoints(
+                oldVertex.position(),
+                vertex.position()
+              );
+
+            line.points(points);
+        }
+              
+    }
+
+}
+
+function getConnectorPoints(from, to) {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    let angle = Math.atan2(-dy, dx);
+
+    const radius = DEFAULT_RADIUS+5;
+
+    return [
+      from.x + -radius * Math.cos(angle + Math.PI),
+      from.y + radius * Math.sin(angle + Math.PI),
+      to.x + -radius * Math.cos(angle),
+      to.y + radius * Math.sin(angle),
+    ];
+  }
 
 
 function nextLetter() {
@@ -259,6 +349,7 @@ document.getElementById('tool').addEventListener('change', function () {
             }
             break;
     }
+    document.getElementById("container").focus();
 });
 
 function fitStageIntoParentContainer() {
