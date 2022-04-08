@@ -44,7 +44,7 @@ stage.on('contextmenu', function (e) {
 var layer = new Konva.Layer();
 stage.add(layer);
 
-stage.on('click tap', function (e) {
+stage.on('click', function (e) {
     if (e.evt.button === 0) {
         console.log('stage left click registered');
 
@@ -124,7 +124,7 @@ function addVertex(e) {
         });
 
         // attach a right click listener for the vertex
-        vertex.on('click tap', (e) => {
+        vertex.on('click', (e) => {
             if (e.evt.button === 2) {
 
                 currentGroup = e.target.getParent();
@@ -137,7 +137,7 @@ function addVertex(e) {
         let currentGroup;
         var menuVertex = document.getElementById('menu');
 
-        document.getElementById('setStart-button').addEventListener('click tap', function _setStart() {
+        document.getElementById('setStart-button').addEventListener('click', function _setStart() {
             currentGroup.to({
                 scaleX: 2,
                 scaleY: 2,
@@ -145,10 +145,10 @@ function addVertex(e) {
                     currentGroup.to({ scaleX: 1, scaleY: 1 });
                 },
             });
-            document.getElementById('setStart-button').removeEventListener('click tap', _setStart);
+            document.getElementById('setStart-button').removeEventListener('click', _setStart);
         });
 
-        document.getElementById('delete-button').addEventListener('click tap', function _doDestroy() {
+        document.getElementById('delete-button').addEventListener('click', function _doDestroy() {
 
             // need to destroy all associated lines, and then the vertex
 
@@ -163,10 +163,10 @@ function addVertex(e) {
 
             currentGroup.destroy();
 
-            document.getElementById('delete-button').removeEventListener('click tap', _doDestroy);
+            document.getElementById('delete-button').removeEventListener('click', _doDestroy);
         });
 
-        window.addEventListener('click tap', () => {
+        window.addEventListener('click', () => {
             menuVertex.style.display = 'none';
         });
     }
