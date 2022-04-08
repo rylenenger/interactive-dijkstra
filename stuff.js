@@ -44,7 +44,7 @@ stage.on('contextmenu', function (e) {
 var layer = new Konva.Layer();
 stage.add(layer);
 
-stage.on('click', function (e) {
+stage.on('click tap', function (e) {
     if (e.evt.button === 0) {
         console.log('stage left click registered');
 
@@ -124,8 +124,9 @@ function addVertex(e) {
         });
 
         // attach a right click listener for the vertex
-        vertex.on('click', (e) => {
+        vertex.on('click tap', (e) => {
             if (e.evt.button === 2) {
+
                 currentGroup = e.target.getParent();
                 menuVertex.style.display = 'initial';
                 var containerRect = stage.container().getBoundingClientRect();
@@ -135,7 +136,8 @@ function addVertex(e) {
         });
         let currentGroup;
         var menuVertex = document.getElementById('menu');
-        document.getElementById('setStart-button').addEventListener('click', () => {
+
+        document.getElementById('setStart-button').addEventListener('click tap', function _setStart() {
             currentGroup.to({
                 scaleX: 2,
                 scaleY: 2,
@@ -143,11 +145,28 @@ function addVertex(e) {
                     currentGroup.to({ scaleX: 1, scaleY: 1 });
                 },
             });
+            document.getElementById('setStart-button').removeEventListener('click tap', _setStart);
         });
-        document.getElementById('delete-button').addEventListener('click', () => {
+
+        document.getElementById('delete-button').addEventListener('click tap', function _doDestroy() {
+
+            // need to destroy all associated lines, and then the vertex
+
+            var lines = stage.find('.connection');
+
+            for (const line of lines) {
+                if (line.attrs.start.includes(currentGroup.attrs.name) || line.attrs.end.includes(currentGroup.attrs.name)) {
+                    line.destroy();
+                }
+
+            }
+
             currentGroup.destroy();
+
+            document.getElementById('delete-button').removeEventListener('click tap', _doDestroy);
         });
-        window.addEventListener('click', () => {
+
+        window.addEventListener('click tap', () => {
             menuVertex.style.display = 'none';
         });
     }
@@ -250,7 +269,7 @@ function addEdge(e) {
             line.setAttr("end", lineTo);
             //line.setAttr("name", lineFrom + '-' + lineTo);
             line.setAttr("name", "connection");
-            console.log(line);
+            //console.log(line);
             line = null;
 
             updateObjects(e.target.getParent());
@@ -275,20 +294,20 @@ function updateObjects(vertex) {
     // need to find all connected lines and move whichever end is connected to this vertex with the vertex
 
     var connectedVertexes = vertex.attrs.connectedTo;
-    console.log(connectedVertexes);
+    //console.log(connectedVertexes);
 
     let oldVertex;
 
     // find all the lines that are connected to the vertex
 
     var lines = stage.find('.connection');
-    console.log(lines);
+    //console.log(lines);
 
-    for (const line of lines){
-        if(line.attrs.start.includes(vertex.attrs.name) || line.attrs.end.includes(vertex.attrs.name)){
+    for (const line of lines) {
+        if (line.attrs.start.includes(vertex.attrs.name) || line.attrs.end.includes(vertex.attrs.name)) {
 
             // find the name of the oldVertex
-            if(line.attrs.start == vertex.attrs.name){
+            if (line.attrs.start == vertex.attrs.name) {
                 // if start of the line matches current vertex, oldVertex must be end of the line
                 oldVertex = stage.findOne('.' + line.attrs.end);
             } else {
@@ -298,11 +317,11 @@ function updateObjects(vertex) {
             const points = getConnectorPoints(
                 oldVertex.position(),
                 vertex.position()
-              );
+            );
 
             line.points(points);
         }
-              
+
     }
 
 }
@@ -312,15 +331,15 @@ function getConnectorPoints(from, to) {
     const dy = to.y - from.y;
     let angle = Math.atan2(-dy, dx);
 
-    const radius = DEFAULT_RADIUS+5;
+    const radius = DEFAULT_RADIUS + 5;
 
     return [
-      from.x + -radius * Math.cos(angle + Math.PI),
-      from.y + radius * Math.sin(angle + Math.PI),
-      to.x + -radius * Math.cos(angle),
-      to.y + radius * Math.sin(angle),
+        from.x + -radius * Math.cos(angle + Math.PI),
+        from.y + radius * Math.sin(angle + Math.PI),
+        to.x + -radius * Math.cos(angle),
+        to.y + radius * Math.sin(angle),
     ];
-  }
+}
 
 
 function nextLetter() {
@@ -342,7 +361,7 @@ document.getElementById('tool').addEventListener('change', function () {
         case "edge":
             for (const letter of alphabet) {
                 if (stage.find('.' + letter)[0]) {
-                    console.log("letter: " + letter.toString());
+                    //console.log("letter: " + letter.toString());
                     var group = stage.find('.' + letter)[0];
                     group.setDraggable(false);
                 }
