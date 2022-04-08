@@ -1,17 +1,10 @@
-//  ================
-// ||  VARIABLES   ||
-//  ================
-
+// VARIABLES
 var count = 0;
 var vertexCreated = false;
 var tool = document.getElementById('tool').value;
+var contextTarget = null; // used to hold the object that the context menu is used for
 
-
-
-//  ================
-// ||  CONSTANTS   ||
-//  ================
-
+// CONSTANTS   
 const sceneWidth = 1140;
 const sceneHeight = sceneWidth / 2;
 const DEFAULT_STROKE_WIDTH = 2;
@@ -23,13 +16,7 @@ const alpha = Array.from(Array(26)).map((e, i) => i + 65);
 const alphabet = alpha.map((x) => String.fromCharCode(x));
 
 
-
-//  ================
-// || APPLICATION  ||
-//  ================
-
-
-
+// APPLICATION 
 var stage = new Konva.Stage({
     container: 'container',
     width: sceneWidth,
@@ -44,7 +31,25 @@ stage.on('contextmenu', function (e) {
 var layer = new Konva.Layer();
 stage.add(layer);
 
-stage.on('click', function (e) {
+stage.on('mouseover', (e) => {
+    if (e.target != stage) {
+        if (e.target.getParent()) {
+            e.target.strokeWidth(MOUSEOVER_STROKE_WIDTH);
+            layer.draw();
+        }
+    }
+});
+
+stage.on('mouseout', (e) => {
+    if (e.target != stage) {
+        if (e.target.getParent()) {
+            e.target.strokeWidth(DEFAULT_STROKE_WIDTH);
+            layer.draw();
+        }
+    }
+});
+
+stage.on('mousedown', function (e) {
     if (e.evt.button === 0) {
         console.log('stage left click registered');
 
@@ -58,9 +63,10 @@ stage.on('click', function (e) {
             case "edge":
                 addEdge(e);
                 break;
+            default:
+                break;
         }
     }
-
 });
 
 function addVertex(e) {
@@ -71,14 +77,16 @@ function addVertex(e) {
             y: stage.getRelativePointerPosition().y,
             draggable: true,
             name: nextLetter(),
-            connectedTo: "1",
+            connectedTo: '1', //can't be null...yet!
+            startNode: false,
+            endNode: false,
         });
 
         vertex.add(new Konva.Circle({
             radius: DEFAULT_RADIUS,
             fill: Konva.Util.getRandomColor(),
             stroke: 'black',
-            strokeWidth: 2,
+            strokeWidth: MOUSEOVER_STROKE_WIDTH,
 
         }));
 
@@ -90,13 +98,10 @@ function addVertex(e) {
             offsetX: 11,
             offsetY: 18,
             listening: false, // need this to be false for mouseover GFX
+            name: "1",
         }));
 
         layer.add(vertex);
-
-        vertexCreated = true;
-        console.log("vertex created");
-
 
         // limit the vertex boundaries to the edge of the stage
         vertex.on('dragmove', () => {
@@ -126,52 +131,74 @@ function addVertex(e) {
         // attach a right click listener for the vertex
         vertex.on('click', (e) => {
             if (e.evt.button === 2) {
+                var menuVertex = document.getElementById('menu');
 
-                currentGroup = e.target.getParent();
+                //currentGroup = e.target.getParent();
+                contextTarget = e.target.getParent();
+                console.log("setting new contextTarget: " + contextTarget.attrs.name);
                 menuVertex.style.display = 'initial';
                 menuVertex.style.top = stage.getPointerPosition().y + 60 + 'px';
                 menuVertex.style.left = stage.getPointerPosition().x + 40 + 'px';
+
+
+
+                document.getElementById('setStart-button').addEventListener('click', _setStart);
+
+                document.getElementById('setEnd-button').addEventListener('click', _setEnd);
+
+                // need to destroy all associated lines, text, and then the vertex
+                document.getElementById('delete-button').addEventListener('click', _destroy);
+
+                // hides context menu when clicking elsewhere
+                window.addEventListener('click', () => {
+                    menuVertex.style.display = 'none';
+                    document.getElementById('delete-button').removeEventListener('click', _destroy);
+                    document.getElementById('setEnd-button').removeEventListener('click', _setEnd);
+                    document.getElementById('setStart-button').removeEventListener('click', _setStart);
+                });
             }
-        });
-        let currentGroup;
-        var menuVertex = document.getElementById('menu');
-
-        document.getElementById('setStart-button').addEventListener('click', function _setStart() {
-            currentGroup.to({
-                scaleX: 2,
-                scaleY: 2,
-                onFinish: () => {
-                    currentGroup.to({ scaleX: 1, scaleY: 1 });
-                },
-            });
-            document.getElementById('setStart-button').removeEventListener('click', _setStart);
-        });
-
-        document.getElementById('delete-button').addEventListener('click', function _doDestroy() {
-
-            // need to destroy all associated lines, and then the vertex
-
-            var lines = stage.find('.connection');
-
-            for (const line of lines) {
-                if (line.attrs.start.includes(currentGroup.attrs.name) || line.attrs.end.includes(currentGroup.attrs.name)) {
-                    line.destroy();
-                }
-
-            }
-
-            currentGroup.destroy();
-
-            document.getElementById('delete-button').removeEventListener('click', _doDestroy);
-        });
-
-        window.addEventListener('click', () => {
-            menuVertex.style.display = 'none';
         });
     }
     else {
         console.log("target is not stage");
     }
+}
+
+var _setStart = function () {
+    // need to check if this is end or start node already...
+    console.log("setStart clicked");
+    //contextTarget.setAttr('startNode', true);
+    contextTarget = null;
+    document.getElementById('setStart-button').removeEventListener('click', _setStart);
+}
+
+var _setEnd = function _setEnd() {
+    console.log("setEnd clicked");
+    contextTarget = null;
+    document.getElementById('setEnd-button').removeEventListener('click', _setEnd);
+}
+
+function _destroy() {
+    console.log("trying to destroy: " + contextTarget.attrs.name);
+    var lines = stage.find('.connection');
+    for (const line of lines) {
+        if (typeof (line.attrs) != undefined) {
+            if (line.attrs.start.includes(contextTarget.attrs.name) || line.attrs.end.includes(contextTarget.attrs.name)) {
+                line.destroy();
+            }
+        }
+    }
+    var texts = stage.find('Text');
+    for (const texty of texts) {
+        if (texty.attrs.name != undefined) {
+            if (texty.attrs.name.includes(contextTarget.attrs.name)) {
+                texty.destroy();
+            }
+        }
+    }
+    contextTarget.destroy();
+    contextTarget = null;
+    document.getElementById('delete-button').removeEventListener('click', _destroy);
 }
 
 
@@ -181,46 +208,25 @@ function addEdge(e) {
         console.log(e.target.getParent().attrs.name);
     }
 
-    stage.on('mouseover', (e) => {
-        if (e.target != stage) {
-            if (e.target.getParent()) {
-                e.target.strokeWidth(MOUSEOVER_STROKE_WIDTH);
-                layer.draw();
-            }
-        }
-    });
-
-    stage.on('mouseout', (e) => {
-        if (e.target != stage) {
-            if (e.target.getParent()) {
-                e.target.strokeWidth(DEFAULT_STROKE_WIDTH);
-                layer.draw();
-            }
-        }
-    });
-
-    let drawingLine = false;
     let line;
     var lineTo = null;
     var lineFrom = null;
-    e.target.on('mousedown', (e) => {
-        tool = document.getElementById('tool').value;
-        if (tool == "edge" && e.target != stage && e.target != stage.findOne('.' + lineFrom + lineTo)) {
-            console.log("mousedown on vertex");
-            drawingLine = true;
-            const pos = stage.getRelativePointerPosition();
-            lineFrom = e.target.getParent().attrs.name;
-            line = new Konva.Line({
-                stroke: 'black',
-                // remove line from hit graph, so we can check intersections
-                listening: false,
-                points: [e.target.getParent().x(), e.target.getParent().y(), pos.x, pos.y],
-                start: lineFrom,
-                end: null,
-            });
-            layer.add(line);
-        }
-    });
+    tool = document.getElementById('tool').value;
+    if (tool == "edge" && e.target != stage && e.target != stage.findOne('.' + lineFrom + lineTo)) {
+        console.log("mousedown on vertex");
+        drawingLine = true;
+        const pos = stage.getRelativePointerPosition();
+        lineFrom = e.target.getParent().attrs.name;
+        line = new Konva.Line({
+            stroke: 'black',
+            // remove line from hit graph, so we can check intersections
+            listening: false,
+            points: [e.target.getParent().x(), e.target.getParent().y(), pos.x, pos.y],
+            start: lineFrom,
+            end: null,
+        });
+        layer.add(line);
+    }
 
     stage.on('mousemove', (e) => {
         if (!line || tool != "edge") {
@@ -246,7 +252,6 @@ function addEdge(e) {
             || e.target.getParent().attrs.connectedTo.includes(lineFrom)   // destination can't already be connected to source
             || e.target.getParent().attrs.connectedTo.includes(lineTo)   // destination can't already be connected to source
         ) {
-
             console.log("can't create line!");
             line.destroy();
             layer.draw();
@@ -281,43 +286,38 @@ function addEdge(e) {
             });
 
             text.on('dblclick dbltap', () => {
-                // create textarea over canvas with absolute position
-        
-                // first we need to find position for textarea
-                // how to find it?
-        
                 // at first lets find position of text node relative to the stage:
                 var textPosition = text.getAbsolutePosition();
-        
+
                 // then lets find position of stage container on the page:
                 var stageBox = stage.container().getBoundingClientRect();
-        
+
                 // so position of textarea will be the sum of positions above:
                 var areaPosition = {
-                  x: stageBox.left + textPosition.x,
-                  y: stageBox.top + textPosition.y,
+                    x: stageBox.left + textPosition.x,
+                    y: stageBox.top + textPosition.y,
                 };
-        
+
                 // create textarea and style it
                 var textarea = document.createElement('textarea');
                 document.body.appendChild(textarea);
-        
+
                 textarea.value = text.text();
                 textarea.style.position = 'absolute';
                 textarea.style.top = areaPosition.y + 'px';
                 textarea.style.left = areaPosition.x + 'px';
                 textarea.style.width = text.width();
-        
+
                 textarea.focus();
-        
+
                 textarea.addEventListener('keydown', function (e) {
-                  // hide on enter
-                  if (e.keyCode === 13) {
-                    text.text(textarea.value);
-                    document.body.removeChild(textarea);
-                  }
+                    // hide on enter
+                    if (e.keyCode === 13) {
+                        text.text(textarea.value);
+                        document.body.removeChild(textarea);
+                    }
                 });
-              });
+            });
 
             layer.add(text);
 
@@ -327,9 +327,6 @@ function addEdge(e) {
             // need to do source vertex as well
             stage.find('.' + lineFrom)[0].setAttr("connectedTo", stage.find('.' + lineFrom)[0].attrs.connectedTo += lineTo);
 
-            points = line.points().slice();
-
-            
             line = null;
         }
     });
@@ -340,41 +337,29 @@ function updateObjects(vertex) {
 
     // vertex is the current selected vertex that *has* been moved
     // need to find all connected lines and move whichever end is connected to this vertex with the vertex
-
-    var connectedVertexes = vertex.attrs.connectedTo;
-    //console.log(connectedVertexes);
-
     let oldVertex;
-
     // find all the lines that are connected to the vertex
-
     var lines = stage.find('.connection');
     //console.log(lines);
 
     for (const line of lines) {
         if (line.attrs.start.includes(vertex.attrs.name) || line.attrs.end.includes(vertex.attrs.name)) {
-
             // find the name of the oldVertex
             if (line.attrs.start == vertex.attrs.name) {
                 // if start of the line matches current vertex, oldVertex must be end of the line
                 oldVertex = stage.findOne('.' + line.attrs.end);
             } else {
+                // otherwide oldVertex is the start of the line!
                 oldVertex = stage.findOne('.' + line.attrs.start);
             }
-
             var points = getConnectorPoints(
                 oldVertex.position(),
                 vertex.position()
             );
-
             line.points(points);
-
             points = line.points().slice();
-
-            //console.log("x: " + stage.findOne('.'+ line.attrs.start + line.attrs.end).attrs.x);
-
-            stage.findOne('.'+ line.attrs.start + line.attrs.end).setAttr('x', (((points[0] + points[2]) / 2) - 60)); 
-            stage.findOne('.'+ line.attrs.start + line.attrs.end).setAttr('y', (((points[1] + points[3]) / 2) - 20));
+            stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('x', (((points[0] + points[2]) / 2) - 60));
+            stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('y', (((points[1] + points[3]) / 2) - 20));
         }
 
     }
@@ -413,7 +398,7 @@ document.getElementById('tool').addEventListener('change', function () {
                 }
             }
             var texts = stage.find('Text');
-            for (text of texts){
+            for (text of texts) {
                 text.setListening(false);
             }
             break;
@@ -426,19 +411,19 @@ document.getElementById('tool').addEventListener('change', function () {
                 }
             }
             var texts = stage.find('Text');
-            for (text of texts){
+            for (text of texts) {
                 text.setListening(false);
             }
             break;
         case "cost":
             var texts = stage.find('Text');
-            for (text of texts){
+            for (text of texts) {
                 text.setListening(true);
             }
             break;
-            
+
     }
-    document.getElementById("container").focus();
+    //document.getElementById("container").focus();
 });
 
 function fitStageIntoParentContainer() {
