@@ -3,6 +3,7 @@ var count = 0;
 var vertexCreated = false;
 var tool = document.getElementById('tool').value;
 var contextTarget = null; // used to hold the object that the context menu is used for
+var hasNumber = /\d/;
 
 // CONSTANTS   
 const sceneWidth = 1140;
@@ -11,8 +12,7 @@ const DEFAULT_STROKE_WIDTH = 2;
 const DEFAULT_VERTEX_FONT_SIZE = 40;
 const MOUSEOVER_STROKE_WIDTH = 6;
 const DEFAULT_RADIUS = 40;
-// create array to hold the alphabet
-const alpha = Array.from(Array(26)).map((e, i) => i + 65);
+const alpha = Array.from(Array(26)).map((e, i) => i + 65); // create array to hold the alphabet
 const alphabet = alpha.map((x) => String.fromCharCode(x));
 
 
@@ -23,14 +23,15 @@ var stage = new Konva.Stage({
     height: sceneHeight,
 });
 
-stage.on('contextmenu', function (e) {
-    // prevent default behavior
-    e.evt.preventDefault();
-});
-
 var layer = new Konva.Layer();
 stage.add(layer);
 
+// disable right click context menu when hovered over the stage
+stage.on('contextmenu', function (e) {
+    e.evt.preventDefault();
+});
+
+// force vertex stroke width on mouseover
 stage.on('mouseover', (e) => {
     if (e.target != stage) {
         if (e.target.getParent()) {
@@ -40,6 +41,7 @@ stage.on('mouseover', (e) => {
     }
 });
 
+// force vertex stroke width on mouseout
 stage.on('mouseout', (e) => {
     if (e.target != stage) {
         if (e.target.getParent()) {
@@ -51,11 +53,9 @@ stage.on('mouseout', (e) => {
 
 stage.on('mousedown', function (e) {
     if (e.evt.button === 0) {
-        console.log('stage left click registered');
-
+        //console.log('stage left click registered');
         tool = document.getElementById('tool').value;
-        console.log('tool:' + tool);
-
+        //console.log('tool:' + tool);
         switch (tool) {
             case "vertex":
                 addVertex(e);
@@ -72,6 +72,7 @@ stage.on('mousedown', function (e) {
 function addVertex(e) {
 
     if (e.target === stage) {
+        // our main vertex group
         var vertex = new Konva.Group({
             x: stage.getRelativePointerPosition().x,
             y: stage.getRelativePointerPosition().y,
@@ -81,7 +82,7 @@ function addVertex(e) {
             startNode: false,
             endNode: false,
         });
-
+        // primary vertex
         vertex.add(new Konva.Circle({
             radius: DEFAULT_RADIUS,
             fill: Konva.Util.getRandomColor(),
@@ -89,7 +90,7 @@ function addVertex(e) {
             strokeWidth: MOUSEOVER_STROKE_WIDTH,
 
         }));
-
+        // label for vertex
         vertex.add(new Konva.Text({
             text: vertex.name(),
             fontSize: DEFAULT_VERTEX_FONT_SIZE,
@@ -98,9 +99,10 @@ function addVertex(e) {
             offsetX: 11,
             offsetY: 18,
             listening: false, // need this to be false for mouseover GFX
-            name: "1",
+            name: "1", // keep as 1 so we don't worry about undefined
         }));
 
+        // add vertex to the current working layer
         layer.add(vertex);
 
         // limit the vertex boundaries to the edge of the stage
@@ -109,7 +111,6 @@ function addVertex(e) {
             const absPos = vertex.getAbsolutePosition();
             const offsetX = circle.x - absPos.x;
             const offsetY = circle.y - absPos.y;
-
             const newAbsPos = { ...absPos }
             if (circle.x < 0) {
                 newAbsPos.x = -offsetX;
@@ -124,7 +125,6 @@ function addVertex(e) {
                 newAbsPos.y = stage.height() - circle.height - offsetY;
             }
             vertex.setAbsolutePosition(newAbsPos)
-
             updateObjects(vertex);
         });
 
@@ -139,7 +139,7 @@ function addVertex(e) {
                 // save current taget as the target for the context menu options
                 contextTarget = e.target.getParent();
                 console.log("setting new contextTarget: " + contextTarget.attrs.name);
-                
+
                 // assign a start node
                 document.getElementById('setStart-button').addEventListener('click', _setStart);
 
@@ -203,16 +203,8 @@ function _destroy() {
     document.getElementById('delete-button').removeEventListener('click', _destroy);
 }
 
-
 function addEdge(e) {
-
-    if (e.target != stage) {
-        console.log(e.target.getParent().attrs.name);
-    }
-
-    let line;
-    var lineTo = null;
-    var lineFrom = null;
+    let line, lineTo, lineFrom;
     tool = document.getElementById('tool').value;
     if (tool == "edge" && e.target != stage && e.target != stage.findOne('.' + lineFrom + lineTo)) {
         console.log("mousedown on vertex");
@@ -221,7 +213,6 @@ function addEdge(e) {
         lineFrom = e.target.getParent().attrs.name;
         line = new Konva.Line({
             stroke: 'black',
-            // remove line from hit graph, so we can check intersections
             listening: false,
             points: [e.target.getParent().x(), e.target.getParent().y(), pos.x, pos.y],
             start: lineFrom,
@@ -234,7 +225,7 @@ function addEdge(e) {
         if (!line || tool != "edge") {
             return;
         }
-        const pos = stage.getRelativePointerPosition();
+        const pos = stage.getRelativePointerPosition(); // must be relative
         const points = line.points().slice();
         points[2] = pos.x;
         points[3] = pos.y;
@@ -269,7 +260,6 @@ function addEdge(e) {
             line.setAttr("end", lineTo);
             line.setAttr("name", "connection");
             line.setAttr("cost", 0);
-            //console.log(line);
 
             var text = new Konva.Text({
                 x: ((points[0] + points[2]) / 2) - 20,
@@ -290,37 +280,29 @@ function addEdge(e) {
             text.on('dblclick dbltap', () => {
                 // at first lets find position of text node relative to the stage:
                 var textPosition = text.getAbsolutePosition();
-
                 // then lets find position of stage container on the page:
                 var stageBox = stage.container().getBoundingClientRect();
-
                 // so position of input will be the sum of positions above:
                 var areaPosition = {
                     x: stageBox.left + textPosition.x,
                     y: stageBox.top + textPosition.y,
                 };
-
                 // create input and style it
                 var input = document.createElement('input');
                 document.body.appendChild(input);
-
                 input.value = text.text();
                 input.style.position = 'absolute';
                 input.style.top = areaPosition.y - 5 + 'px';
                 input.style.left = areaPosition.x - 20 + 'px';
                 input.style.width = '120px';
-                //input.style.padding = '10px 10px';
                 input.style.fontSize = '30px';
                 input.style.color = 'blue';
                 input.style.fontFamily = 'Consolas';
                 input.style.textAlign = 'center';
                 input.type = 'number';
-
-
                 input.focus();
-
                 input.addEventListener('keydown', function (e) {
-                    // hide on enter
+                    // hide on enter - maybe add an OK button instead?
                     if (e.keyCode === 13) {
                         text.text(input.value);
                         document.body.removeChild(input);
@@ -328,6 +310,7 @@ function addEdge(e) {
                 });
             });
 
+            // add text to the working layer
             layer.add(text);
 
             updateObjects(e.target.getParent());
@@ -336,7 +319,7 @@ function addEdge(e) {
             // need to do source vertex as well
             stage.find('.' + lineFrom)[0].setAttr("connectedTo", stage.find('.' + lineFrom)[0].attrs.connectedTo += lineTo);
 
-            line = null;
+            line = null; // is this needed
         }
     });
 }
@@ -349,8 +332,6 @@ function updateObjects(vertex) {
     let oldVertex;
     // find all the lines that are connected to the vertex
     var lines = stage.find('.connection');
-    //console.log(lines);
-
     for (const line of lines) {
         if (line.attrs.start.includes(vertex.attrs.name) || line.attrs.end.includes(vertex.attrs.name)) {
             // find the name of the oldVertex
@@ -361,27 +342,25 @@ function updateObjects(vertex) {
                 // otherwide oldVertex is the start of the line!
                 oldVertex = stage.findOne('.' + line.attrs.start);
             }
+            // set the line to be connected to old and new vertex
             var points = getConnectorPoints(
                 oldVertex.position(),
                 vertex.position()
             );
             line.points(points);
+            // set the cost to be halfway between vertexes, fudged a little to appear on top of a horizontal line
             points = line.points().slice();
             stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('x', (((points[0] + points[2]) / 2) - 30));
             stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('y', (((points[1] + points[3]) / 2) - 32));
         }
-
     }
-
 }
 
 function getConnectorPoints(from, to) {
     const dx = to.x - from.x;
     const dy = to.y - from.y;
     let angle = Math.atan2(-dy, dx);
-
-    const radius = DEFAULT_RADIUS + 5;
-
+    const radius = DEFAULT_RADIUS + 5; // how far out from the circle we want the connections to be
     return [
         from.x + -radius * Math.cos(angle + Math.PI),
         from.y + radius * Math.sin(angle + Math.PI),
@@ -390,18 +369,18 @@ function getConnectorPoints(from, to) {
     ];
 }
 
-
+// simple function that feeds the next letter of the alphabet
 function nextLetter() {
     return alphabet[count++];
 }
 
+// change parameters depending on what tool is selected. add/move vertex is default.
 document.getElementById('tool').addEventListener('change', function () {
     console.log('You selected: ', this.value);
     switch (this.value) {
         case "vertex":
             for (const letter of alphabet) {
                 if (stage.find('.' + letter)[0]) {
-                    console.log("letter: " + letter.toString());
                     var group = stage.find('.' + letter)[0];
                     group.setDraggable(true);
                 }
@@ -414,7 +393,6 @@ document.getElementById('tool').addEventListener('change', function () {
         case "edge":
             for (const letter of alphabet) {
                 if (stage.find('.' + letter)[0]) {
-                    //console.log("letter: " + letter.toString());
                     var group = stage.find('.' + letter)[0];
                     group.setDraggable(false);
                 }
@@ -427,12 +405,18 @@ document.getElementById('tool').addEventListener('change', function () {
         case "cost":
             var texts = stage.find('Text');
             for (text of texts) {
-                text.setListening(true);
+                if (!hasNumber.test(text.attrs.name)) {
+                    text.setListening(true);
+                }
+            }
+            for (const letter of alphabet) {
+                if (stage.find('.' + letter)[0]) {
+                    var group = stage.find('.' + letter)[0];
+                    group.setDraggable(false);
+                }
             }
             break;
-
     }
-    //document.getElementById("container").focus();
 });
 
 function fitStageIntoParentContainer() {
