@@ -131,19 +131,19 @@ function addVertex(e) {
         // attach a right click listener for the vertex
         vertex.on('click', (e) => {
             if (e.evt.button === 2) {
+                // right click context menu options
                 var menuVertex = document.getElementById('menu');
-
-                //currentGroup = e.target.getParent();
-                contextTarget = e.target.getParent();
-                console.log("setting new contextTarget: " + contextTarget.attrs.name);
                 menuVertex.style.display = 'initial';
                 menuVertex.style.top = stage.getPointerPosition().y + 60 + 'px';
                 menuVertex.style.left = stage.getPointerPosition().x + 40 + 'px';
-
-
-
+                // save current taget as the target for the context menu options
+                contextTarget = e.target.getParent();
+                console.log("setting new contextTarget: " + contextTarget.attrs.name);
+                
+                // assign a start node
                 document.getElementById('setStart-button').addEventListener('click', _setStart);
 
+                // assign an end node
                 document.getElementById('setEnd-button').addEventListener('click', _setEnd);
 
                 // need to destroy all associated lines, text, and then the vertex
@@ -164,20 +164,23 @@ function addVertex(e) {
     }
 }
 
+// handler function for setting the start node
 var _setStart = function () {
-    // need to check if this is end or start node already...
-    console.log("setStart clicked");
-    //contextTarget.setAttr('startNode', true);
-    contextTarget = null;
+    contextTarget.setAttr('endNode', false);
+    contextTarget.setAttr('startNode', true);
+    console.log(contextTarget.attrs.name + " set as start node");
     document.getElementById('setStart-button').removeEventListener('click', _setStart);
 }
 
+// handler function for setting the end node
 var _setEnd = function _setEnd() {
-    console.log("setEnd clicked");
-    contextTarget = null;
+    contextTarget.setAttr('startNode', false);
+    contextTarget.setAttr('endNode', true);
+    console.log(contextTarget.attrs.name + " set as end node");
     document.getElementById('setEnd-button').removeEventListener('click', _setEnd);
 }
 
+// handler function for destroying vertex with all attached lines and text
 function _destroy() {
     console.log("trying to destroy: " + contextTarget.attrs.name);
     var lines = stage.find('.connection');
@@ -189,15 +192,14 @@ function _destroy() {
         }
     }
     var texts = stage.find('Text');
-    for (const texty of texts) {
-        if (texty.attrs.name != undefined) {
-            if (texty.attrs.name.includes(contextTarget.attrs.name)) {
-                texty.destroy();
+    for (const text of texts) {
+        if (text.attrs.name != undefined) {
+            if (text.attrs.name.includes(contextTarget.attrs.name)) {
+                text.destroy();
             }
         }
     }
     contextTarget.destroy();
-    contextTarget = null;
     document.getElementById('delete-button').removeEventListener('click', _destroy);
 }
 
@@ -270,16 +272,16 @@ function addEdge(e) {
             //console.log(line);
 
             var text = new Konva.Text({
-                x: ((points[0] + points[2]) / 2) - 40,
+                x: ((points[0] + points[2]) / 2) - 20,
                 y: ((points[1] + points[3]) / 2) - 15,
-                text: '17',
-                fontSize: 40,
+                text: '0',
+                fontSize: 30,
                 fontFamily: 'Consolas',
                 fill: 'blue',
                 align: 'center',
                 verticalAlign: 'middle',
                 listening: false,
-                width: 120,
+                width: 60,
                 start: lineFrom,
                 end: lineTo,
                 name: lineFrom + lineTo,
@@ -292,29 +294,36 @@ function addEdge(e) {
                 // then lets find position of stage container on the page:
                 var stageBox = stage.container().getBoundingClientRect();
 
-                // so position of textarea will be the sum of positions above:
+                // so position of input will be the sum of positions above:
                 var areaPosition = {
                     x: stageBox.left + textPosition.x,
                     y: stageBox.top + textPosition.y,
                 };
 
-                // create textarea and style it
-                var textarea = document.createElement('textarea');
-                document.body.appendChild(textarea);
+                // create input and style it
+                var input = document.createElement('input');
+                document.body.appendChild(input);
 
-                textarea.value = text.text();
-                textarea.style.position = 'absolute';
-                textarea.style.top = areaPosition.y + 'px';
-                textarea.style.left = areaPosition.x + 'px';
-                textarea.style.width = text.width();
+                input.value = text.text();
+                input.style.position = 'absolute';
+                input.style.top = areaPosition.y - 5 + 'px';
+                input.style.left = areaPosition.x - 20 + 'px';
+                input.style.width = '120px';
+                //input.style.padding = '10px 10px';
+                input.style.fontSize = '30px';
+                input.style.color = 'blue';
+                input.style.fontFamily = 'Consolas';
+                input.style.textAlign = 'center';
+                input.type = 'number';
 
-                textarea.focus();
 
-                textarea.addEventListener('keydown', function (e) {
+                input.focus();
+
+                input.addEventListener('keydown', function (e) {
                     // hide on enter
                     if (e.keyCode === 13) {
-                        text.text(textarea.value);
-                        document.body.removeChild(textarea);
+                        text.text(input.value);
+                        document.body.removeChild(input);
                     }
                 });
             });
@@ -358,8 +367,8 @@ function updateObjects(vertex) {
             );
             line.points(points);
             points = line.points().slice();
-            stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('x', (((points[0] + points[2]) / 2) - 60));
-            stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('y', (((points[1] + points[3]) / 2) - 20));
+            stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('x', (((points[0] + points[2]) / 2) - 30));
+            stage.findOne('.' + line.attrs.start + line.attrs.end).setAttr('y', (((points[1] + points[3]) / 2) - 32));
         }
 
     }
