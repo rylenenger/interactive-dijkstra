@@ -129,7 +129,6 @@ function addVertex(e) {
 
                 currentGroup = e.target.getParent();
                 menuVertex.style.display = 'initial';
-                var containerRect = stage.container().getBoundingClientRect();
                 menuVertex.style.top = stage.getPointerPosition().y + 60 + 'px';
                 menuVertex.style.left = stage.getPointerPosition().x + 40 + 'px';
             }
@@ -205,17 +204,12 @@ function addEdge(e) {
     var lineTo = null;
     var lineFrom = null;
     e.target.on('mousedown', (e) => {
-
-
         tool = document.getElementById('tool').value;
-
-        if (tool == "edge" && e.target != stage) {
+        if (tool == "edge" && e.target != stage && e.target != stage.findOne('.' + lineFrom + lineTo)) {
             console.log("mousedown on vertex");
             drawingLine = true;
             const pos = stage.getRelativePointerPosition();
-
             lineFrom = e.target.getParent().attrs.name;
-
             line = new Konva.Line({
                 stroke: 'black',
                 // remove line from hit graph, so we can check intersections
@@ -224,10 +218,8 @@ function addEdge(e) {
                 start: lineFrom,
                 end: null,
             });
-
             layer.add(line);
         }
-
     });
 
     stage.on('mousemove', (e) => {
@@ -249,6 +241,7 @@ function addEdge(e) {
         // if target is stage, line, source, or connected with node already, destroy the line
         if (
             e.target == stage                           // can't be stage
+            || stage.findOne('.' + lineFrom + lineTo)   // can't be text
             || e.target.getParent().hasName(lineFrom)   // can't be vertex where line started
             || e.target.getParent().attrs.connectedTo.includes(lineFrom)   // destination can't already be connected to source
             || e.target.getParent().attrs.connectedTo.includes(lineTo)   // destination can't already be connected to source
@@ -260,31 +253,86 @@ function addEdge(e) {
             line = null;
         } else {
             let pos = e.target.getClientRect();
-            const points = line.points().slice();
+            var points = line.points().slice();
             points[2] = pos.x + (e.target.width() / 2);
             points[3] = pos.y + (e.target.height() / 2);;
             line.points(points);
             layer.batchDraw();
             lineTo = e.target.getParent().attrs.name;
             line.setAttr("end", lineTo);
-            //line.setAttr("name", lineFrom + '-' + lineTo);
             line.setAttr("name", "connection");
+            line.setAttr("cost", 0);
             //console.log(line);
-            line = null;
+
+            var text = new Konva.Text({
+                x: ((points[0] + points[2]) / 2) - 40,
+                y: ((points[1] + points[3]) / 2) - 15,
+                text: '17',
+                fontSize: 40,
+                fontFamily: 'Consolas',
+                fill: 'blue',
+                align: 'center',
+                verticalAlign: 'middle',
+                listening: false,
+                width: 120,
+                start: lineFrom,
+                end: lineTo,
+                name: lineFrom + lineTo,
+            });
+
+            text.on('dblclick dbltap', () => {
+                // create textarea over canvas with absolute position
+        
+                // first we need to find position for textarea
+                // how to find it?
+        
+                // at first lets find position of text node relative to the stage:
+                var textPosition = text.getAbsolutePosition();
+        
+                // then lets find position of stage container on the page:
+                var stageBox = stage.container().getBoundingClientRect();
+        
+                // so position of textarea will be the sum of positions above:
+                var areaPosition = {
+                  x: stageBox.left + textPosition.x,
+                  y: stageBox.top + textPosition.y,
+                };
+        
+                // create textarea and style it
+                var textarea = document.createElement('textarea');
+                document.body.appendChild(textarea);
+        
+                textarea.value = text.text();
+                textarea.style.position = 'absolute';
+                textarea.style.top = areaPosition.y + 'px';
+                textarea.style.left = areaPosition.x + 'px';
+                textarea.style.width = text.width();
+        
+                textarea.focus();
+        
+                textarea.addEventListener('keydown', function (e) {
+                  // hide on enter
+                  if (e.keyCode === 13) {
+                    text.text(textarea.value);
+                    document.body.removeChild(textarea);
+                  }
+                });
+              });
+
+            layer.add(text);
 
             updateObjects(e.target.getParent());
-
             // add source to the connectedTo attribute of the destination vertex
             e.target.getParent().setAttr("connectedTo", e.target.getParent().attrs.connectedTo += lineFrom);
-
             // need to do source vertex as well
             stage.find('.' + lineFrom)[0].setAttr("connectedTo", stage.find('.' + lineFrom)[0].attrs.connectedTo += lineTo);
 
+            points = line.points().slice();
 
+            
+            line = null;
         }
-
     });
-
 }
 
 
@@ -314,12 +362,19 @@ function updateObjects(vertex) {
                 oldVertex = stage.findOne('.' + line.attrs.start);
             }
 
-            const points = getConnectorPoints(
+            var points = getConnectorPoints(
                 oldVertex.position(),
                 vertex.position()
             );
 
             line.points(points);
+
+            points = line.points().slice();
+
+            //console.log("x: " + stage.findOne('.'+ line.attrs.start + line.attrs.end).attrs.x);
+
+            stage.findOne('.'+ line.attrs.start + line.attrs.end).setAttr('x', (((points[0] + points[2]) / 2) - 60)); 
+            stage.findOne('.'+ line.attrs.start + line.attrs.end).setAttr('y', (((points[1] + points[3]) / 2) - 20));
         }
 
     }
@@ -357,6 +412,10 @@ document.getElementById('tool').addEventListener('change', function () {
                     group.setDraggable(true);
                 }
             }
+            var texts = stage.find('Text');
+            for (text of texts){
+                text.setListening(false);
+            }
             break;
         case "edge":
             for (const letter of alphabet) {
@@ -366,7 +425,18 @@ document.getElementById('tool').addEventListener('change', function () {
                     group.setDraggable(false);
                 }
             }
+            var texts = stage.find('Text');
+            for (text of texts){
+                text.setListening(false);
+            }
             break;
+        case "cost":
+            var texts = stage.find('Text');
+            for (text of texts){
+                text.setListening(true);
+            }
+            break;
+            
     }
     document.getElementById("container").focus();
 });
