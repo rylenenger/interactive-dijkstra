@@ -3,10 +3,11 @@ body {
     padding: 0;
     overflow: hidden;
     font-size:medium;
+    background-color: aliceblue;
   }
 
   #container {
-    border: 1px solid rgb(236, 236, 236);
+    border: 1px solid #558C8C;
     background-color: rgb(236, 236, 236);
   }
 
@@ -29,4 +30,19 @@ body {
 
   #menu button:hover {
     background-color: lightgray;
+  }
+
+  #tool{
+    padding: 1%;
+    margin: 2%;
+  }
+
+  h3{
+    color: #231123;
+    font-weight: bold;
+  }
+
+  .jumbotron{
+    background-color: #558C8C;
+    color: #231123;
   }
