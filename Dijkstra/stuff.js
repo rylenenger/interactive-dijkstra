@@ -4,7 +4,6 @@ var vertexCreated = false;
 var tool = document.getElementById('tool').value;
 var contextTarget = null; // used to hold the object that the context menu is used for
 var hasNumber = /\d/;
-let isnum = /^\d+$/.test(val);
 
 // CONSTANTS   
 const sceneWidth = 1140;
@@ -277,8 +276,7 @@ function addEdge(e) {
                 end: lineTo,
                 name: lineFrom + lineTo,
             });
-            
-            // Edit Costs
+
             text.on('dblclick dbltap', () => {
                 // at first lets find position of text node relative to the stage:
                 var textPosition = text.getAbsolutePosition();
@@ -301,15 +299,10 @@ function addEdge(e) {
                 input.style.color = 'blue';
                 input.style.fontFamily = 'Consolas';
                 input.style.textAlign = 'center';
-                //input.type = 'number';
+                input.type = 'number';
                 input.focus();
                 input.addEventListener('keydown', function (e) {
-                    // check if key input is a number or letter, since letter has been entered backspace once
-                    /*if (!hasNumber.test(e.code)){
-                        
-                    }*/
                     // hide on enter - maybe add an OK button instead?
-                    input.onkeydown = checkInput(e)
                     if (e.keyCode === 13) {
                         text.text(input.value);
                         document.body.removeChild(input);
@@ -330,8 +323,6 @@ function addEdge(e) {
         }
     });
 }
-
-
 
 
 function updateObjects(vertex) {
